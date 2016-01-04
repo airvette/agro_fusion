@@ -27,15 +27,15 @@ lng = -120.331511
 src = '..\LC80420362015194LGN00_B4.TIF'
 src2 = '..\LC80420362015194LGN00_B3.TIF'
 mask = 0
-boundary = np.array([34.671431, -120.331162],
-                    [34.671426, -120.327284],
-                    [34.670870, -120.327238],
-                    [34.667834, -120.328600],
-                    [34.665236, -120.329596],
-                    [34.664424, -120.330089],
-                    [34.664159, -120.330776],
-                    [34.664282, -120.331291],
-                    [34.671431, -120.331162])
+boundary = np.array([(34.671431, -120.331162),
+                    (34.671426, -120.327284),
+                    (34.670870, -120.327238),
+                    (34.667834, -120.328600),
+                    (34.665236, -120.329596),
+                    (34.664424, -120.330089),
+                    (34.664159, -120.330776),
+                    (34.664282, -120.331291),
+                    (34.671431, -120.331162)])
 
 def isolateProperty(lat, lng, src, boundary):
 #This function takes a latitude, longitude, source raster image and a mask 
@@ -74,40 +74,66 @@ def isolateProperty(lat, lng, src, boundary):
     #  EPSG corresponds only to zone 11. A suggestion would be to read the 
     #  GeoTiff metadata for the zone and set the outputEPSG accordingly
     
-    # Create the geometry associated with the property, essentially a point 
-    #  that locates the property in the raster image.  This results in quicker
+    # Create the geometry associated with the property, create a linear ring
+    #  that outlines the property in the raster image.  This results in quicker
     #  processing than searching the entire image for the property shape
-    propPoint = ogr.Geometry(ogr.wkbPoint) # create point object
-    propPoint.AddPoint(lng, lat) # add the point coordinates to object
-    # NOTE: the order of lng and lat in the above function are important
-    #propPoint.AddPoint(testX, testY)
+    propRing = ogr.Geometry(ogr.wkbLinearRing)
+#   to be implemented later:
+#   it = np.nditer(boundary, flags = ['multi-index'])
+#   while not it.finished:        
+
+    propRing.AddPoint(boundary[0,1],boundary[0,0])
+    propRing.AddPoint(boundary[1,1],boundary[1,0])
+    propRing.AddPoint(boundary[2,1],boundary[2,0])
+    propRing.AddPoint(boundary[3,1],boundary[3,0])
+    propRing.AddPoint(boundary[4,1],boundary[4,0])
+    propRing.AddPoint(boundary[5,1],boundary[5,0])
+    propRing.AddPoint(boundary[6,1],boundary[6,0])
+    propRing.AddPoint(boundary[7,1],boundary[7,0])
+    propRing.AddPoint(boundary[8,1],boundary[8,0])
     
-    propPoint.Transform(coordTransform) # perform the coordinate transform
-    # DEBUG START: Print for debugging purposes
-    print propPoint.GetX(), propPoint.GetY()
-    # DEBUG END
+    propPoly = ogr.Geometry(ogr.wkbPolygon)
+    propPoly.AddGeometry(propRing)
+#    print propPoly.ExportToWkt() # print polygon values before transform
+
+#    propPoint = ogr.Geometry(ogr.wkbPoint) # create point object
+#    propPoint.AddPoint(lng, lat) # add the point coordinates to object
+    # NOTE: the order of lng and lat in the above function are important
+    
+    propPoly.Transform(coordTransform)  
+    
+#    print propPoly.ExportToWkt() # print polygon values after transform
+    
+#    propPoint.Transform(coordTransform) # perform the coordinate transform
+#    # DEBUG START: Print for debugging purposes
+#    print propPoint.GetX(), propPoint.GetY()
+#    # DEBUG END 
     
     # load the source band raster files
     tif = gdal.Open(src, gdal.GA_ReadOnly)
-    
+ 
     # find the pixel coordinate
     trans = tif.GetGeoTransform()
-
-    print trans
-    pixelX = (propPoint.GetX()-trans[0])/trans[1]
-    pixelY = (propPoint.GetY()-trans[3])/trans[5]
-    pixelArray = np.array([int(math.floor(pixelY)),int(math.floor(pixelX))])
-    print pixelArray
+#    print trans
     
-    # create raster channels that only have the vineyard of interest (VOI) (everything 
-    #  else cropped out)
-    preimg = cv2.imread(src,0)
-    zoom = 40
-    img = preimg[pixelArray[0]-zoom:pixelArray[0]+zoom, pixelArray[1]-zoom:pixelArray[1]+zoom]
-    fig = plt.figure(1)
-    plt.imshow(img, cmap = 'gray', interpolation = 'none')
-    plt.xticks([]), plt.yticks([]) # to hide tick values on X and Y axis
-    fig.show()
+    # Now set the image boundaries (a rectangle that includes the vineyard)
+    # First find the max and min boundary values and add a buffer to each side
+    maxCoords = np.amax(boundary, axis=0)
+    minCoords = np.amin(boundary, axis=0)
+#    pixelX = (propPoint.GetX()-trans[0])/trans[1]
+#    pixelY = (propPoint.GetY()-trans[3])/trans[5]
+#    pixelArray = np.array([int(math.floor(pixelY)),int(math.floor(pixelX))])
+#    print pixelArray
+#    
+#    # create raster channels that only have the vineyard of interest (VOI) (everything 
+#    #  else cropped out)
+#    preimg = cv2.imread(src,0)
+#    zoom = 40
+#    img = preimg[pixelArray[0]-zoom:pixelArray[0]+zoom, pixelArray[1]-zoom:pixelArray[1]+zoom]
+#    fig = plt.figure(1)
+#    plt.imshow(img, cmap = 'gray', interpolation = 'none')
+#    plt.xticks([]), plt.yticks([]) # to hide tick values on X and Y axis
+#    fig.show()
     return # return nothing at the moment
     
     # Create the vineyard image mask
