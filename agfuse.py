@@ -10,6 +10,7 @@ Created on Fri Jan 01 16:27:01 2016
 from osgeo import ogr, osr, gdal
 import os, os.path, shutil
 import numpy as np
+from matplotlib import pyplot as plt
 gdal.UseExceptions()
 
 def createProperty (name, use, boundaryPoints):
@@ -124,24 +125,78 @@ def isoRasterProp(raster, shapefile):
         #  raster 
     
     # Open the raster
-    # Retrieve the spatial reference of the raster
+    dataset = gdal.Open(raster, gdal.GA_ReadOnly)
+    # Retrieve the spatial reference of the raster dataset
     
     # Open the shapefile
+    shapesource = ogr.Open(shapefile)
     # Clone the polygon geometry object that represents the property
-    # Project geometry points to the raster's spatial reference
-    # Get max and min x and y values of the transformed geometry
-    # Determine the dimensions and offsets of a bounding box that will contain
-    #  the entire property
+    workingLayer = shapesource.GetLayer(0)
+    workingFeature = workingLayer.GetFeature(0)
+    workingGeometry = workingFeature.GetGeometryRef()
     
-    # Get the affine transform from the raster
+    # Create the spatial transform
+    # Create the source spatial reference and set to the shapefile datum
+    srcProj = osr.SpatialReference()
+    srcProj.SetWellKnownGeogCS('WGS84') # it is assumed that the shapefile inputs will always be the WGS84 datum
+    # Create the destination spatial reference and set to the raster projection
+    dstProj = osr.SpatialReference(wkt=dataset.GetProjection())
+    # Create the transform object and perform the transform on the shapefile
+    transform = osr.CoordinateTransformation(srcProj, dstProj)
+    workingGeometry.Transform(transform) # Project geometry points to the raster's spatial reference
+    
+    # Get max and min x and y values of the transformed geometry
+    minGeomX,maxGeomX,minGeomY,maxGeomY = workingGeometry.GetEnvelope()
+    # Determine the dimensions and offsets of a bounding box that will contain the entire property
+    bufferSize = 10 * 30 # buffer size is the number of pixles multiplied by the raster resolution (30 meters)      
+    
+    # Get the affine transform from the raster and define the raster bounding box in pixles
+    geotransform = dataset.GetGeoTransform()
+    minBoxX = int(((minGeomX - bufferSize) - geotransform[0])/geotransform[1])
+    maxBoxX = int(((maxGeomX + bufferSize) - geotransform[0])/geotransform[1])
+    minBoxY = int(((minGeomY - bufferSize) - geotransform[3])/geotransform[5])
+    maxBoxY = int(((maxGeomY + bufferSize) - geotransform[3])/geotransform[5])
     # Using the bounding box, read a portion of the raster image to an array
     #  where each array cell corresponds to a raster pixel
-    # Create new affine transform using the bounding box offsets
+    band = dataset.GetRasterBand(1) # Landsat 8 raster files only have one band per tif, indexing starts at 1
+    prePropPix = band.ReadAsArray(minBoxX, maxBoxY, (maxBoxX-minBoxX), (minBoxY-maxBoxY))
     
+    #test code start
+    fig1 = plt.figure(1)
+    plt.imshow(prePropPix, cmap = 'gray', interpolation = 'none')
+    plt.xticks([]), plt.yticks([]) # to hide tick values on X and Y axis
+    fig1.show()
+    #test code end
+    
+    # Create new affine transform using the bounding box offsets
+    detailGeoTrans = [minGeomX - bufferSize, geotransform[1], 0,
+                      maxGeomY + bufferSize, 0, geotransform[5]]
     # Set all array cells that are outside of the property to a negative number
+    # Create test point object
+    testPoint = ogr.Geometry(ogr.wkbPoint)
+    testPoint.AddPoint(0,0)
+    propPix = np.array(prePropPix)
+    for index in np.ndindex(propPix.shape):
+        # Determine cell location
+        xLoc = (index[1] * detailGeoTrans[1]) + detailGeoTrans[0]
+        yLoc = (index[0] * detailGeoTrans[5]) + detailGeoTrans[3]
+        # Set point location to (xLoc,yLoc)
+        testPoint.SetPoint(0,xLoc,yLoc)
+        # if cell is outside of geometry, set to 0
+        if not testPoint.Within(workingGeometry):
+            propPix[index] = 0
+    
+    #test code start
+    fig2 = plt.figure(2)
+    plt.imshow(propPix, cmap = 'gray', interpolation = 'none')
+    plt.xticks([]), plt.yticks([]) # to hide tick values on X and Y axis
+    fig2.show()
+    #test code end    
     
     # Perform cleanup actions
-    # Destroy the geometry, band or whatever to free up memory    
+    # Destroy the geometry, band or whatever to free up memory
+    workingFeature.Destroy()    
+    shapesource.Destroy()
     
     # Return the array
     return propPix
