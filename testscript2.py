@@ -33,3 +33,4 @@ import agfuse
 #    print i, name, use, geometry.ExportToWkt()
     
 propArray = agfuse.isoRasterProp('..\LC80420362015194LGN00_B4.TIF', 'Melville\Melville.shp')
+propArrayRad = agfuse.scalePix(propArray, '..\LC80420362015194LGN00_MTL.txt', 4)

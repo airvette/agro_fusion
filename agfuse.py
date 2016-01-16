@@ -8,7 +8,7 @@ Created on Fri Jan 01 16:27:01 2016
 """
 
 from osgeo import ogr, osr, gdal
-import os, os.path, shutil
+import os, os.path, shutil, mmap
 import numpy as np
 from matplotlib import pyplot as plt
 gdal.UseExceptions()
@@ -200,3 +200,92 @@ def isoRasterProp(raster, shapefile):
     
     # Return the array
     return propPix
+    
+def scalePix (propPix, metaFile, colorBand):
+    #THIS FUNCTION CURRENTLY ONLY SUPPORTS LANDSAT 8 DATA PRODUCTS    
+    #This function takes the array created by isoRasterProp() and scales the
+    # pixel values in the array according to the metadata in metaFile to calc
+    # the spectral radiance.  The colorBand input defines which color scaling 
+    # should be applied.
+    #
+    # The spectral radiance is computed with the equation:
+    #       l_lambda = multFactor * propPix[i,j] + addScale
+    # Inputs: ---------------------------------------------------------------------
+    # - propPix = the 16-bit integer array produced by isoRasterProp()
+    # - metaFile = the Landsat Level 1 product metafile.  The file has naming
+    #   convention "*_MTL.txt" and contains datum, projection, reflectance, 
+    #   time and date information.  This function scans the metadata file for 
+    #   the required info
+    # - colorBand = an integer can be entered in this variable.  The only 
+    #   acceptable integers are 1-11 and directly correspond to Landsat 8's 
+    #   payload bands.  Future functionality may allow for strings as inputs
+    #   (i.e. 'red', 'blue', 'nir', etc)
+    # Output: ---------------------------------------------------------------------
+    # - propPixRad = the input array's values converted to measured spectral
+    #   radiance values.  The numpy dtype = float  (64 bit float)
+    # Jeff Guido, Jan 2016
+
+    # Create keywords based on colorBand input per 'Landsat8DataUsersHandbook',
+    #  pg 69, section 5.1
+    multKey = 'RADIANCE_MULT_BAND_' + str(colorBand)   
+    addKey = 'RADIANCE_ADD_BAND_' + str(colorBand)   
+    
+    # Determine values of multFactor and addScale
+    file = open(metaFile)
+    text = mmap.mmap(file.fileno(), 0, access=mmap.ACCESS_READ) # create searchable object
+    keyStart = text.find(multKey) # find position of multKey
+    text.seek(keyStart) # set mmap pointer to accurate multKey line
+    multFactorLine = text.readline()
+    # The metafile format for this line is RADIANCE_MULT_BAND_N = X.XXXXE-Y,
+    #  we want to isolate 'X.XXXE-Y' and convert it to a float
+    multFactorWords = multFactorLine.split(' = ')
+    multFactor = float(multFactorWords[1])
+    # Perform same operation for addScale
+    keyStart = text.find(addKey) # find position of addKey
+    text.seek(keyStart) # set mmap pointer to accurate multKey line
+    addScaleLine = text.readline()
+    addScaleWords = addScaleLine.split(' = ')
+    addScale = float(addScaleWords[1])
+    text.close() # metaFile is not needed anymore
+    
+    # Create output array and loop through to generate output
+    propPixRad = np.array(propPix, dtype = float)
+    for index in np.ndindex(propPixRad.shape):
+        if propPix[index] > 0:            
+            propPixRad[index] = multFactor*propPix[index] + addScale    
+
+    return propPixRad
+    
+
+def getNdvi (redArray, nirArray):
+    #This function takes two arrays from isoRasterProp() and computes a 
+    # Normalized Difference Vegitation Index (NDVI) for the property rendered 
+    # by the arrays.  The inputs are of arrays that are identical in geospatial
+    # terms, but were captured in using different parts of the visible and 
+    # infrared spectrum.
+    #
+    # The normalized difference for each pixel is computed with the equation:
+    #       NDVI = (nirArray[i,j] - redArray[i,j])/(nirArray[i,j] + redArray[i,j])
+    # 
+    # After computing the NDVI for each pixel, the pixel values are integrated
+    # over the isolated property and a scalar is returned
+    # Inputs: ---------------------------------------------------------------------
+    # - redArray = the array created by isoRasterProp() that represents the 
+    #   property of interest in the red visual band. dtype = float
+    # - nirArray = the array created by isoRasterProp() that represents the 
+    #   property of interest in the Near Infrared visual band. dtype = float
+    # Output: ---------------------------------------------------------------------
+    # - ndviVal = the NDVI value for the property of interest.
+    # - nvdiArray = the raw array is output so it can be used for visulization
+    #   in a GUI.  dtype = float
+    # Jeff Guido, Jan 2016
+
+    # Create ndviArray to hold the pixel values   
+    nvdiArray = np.ndarray(redArray.shape)
+    # Iterate through the red and nir arrays
+    for index in np.nditer(nvdiArray.shape):
+        if redArray[index] & nirArray[index] > 0:
+            nvdiArray[index] = (nirArray[index] - redArray[index])/(nirArray[index] + redArray[index])
+    # Integrate the values to return
+
+    return ndviVal, nvdiArray
