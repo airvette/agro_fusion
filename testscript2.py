@@ -32,5 +32,8 @@ import agfuse
 #    geometry = feature.GetGeometryRef()
 #    print i, name, use, geometry.ExportToWkt()
     
-propArray = agfuse.isoRasterProp('..\LC80420362015194LGN00_B4.TIF', 'Melville\Melville.shp')
-propArrayRad = agfuse.scalePix(propArray, '..\LC80420362015194LGN00_MTL.txt', 4)
+nirPropArray = agfuse.isoRasterProp('..\LC80420362015194LGN00_B5.TIF', 'Melville\Melville.shp')
+nirPropArrayRad = agfuse.scalePix(nirPropArray, '..\LC80420362015194LGN00_MTL.txt', 5)
+redPropArray = agfuse.isoRasterProp('..\LC80420362015194LGN00_B4.TIF', 'Melville\Melville.shp')
+redPropArrayRad = agfuse.scalePix(redPropArray, '..\LC80420362015194LGN00_MTL.txt', 4)
+ndviVal, ndviArray = agfuse.getNdvi(redPropArrayRad, nirPropArrayRad)

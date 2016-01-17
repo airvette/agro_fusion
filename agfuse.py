@@ -148,7 +148,7 @@ def isoRasterProp(raster, shapefile):
     # Get max and min x and y values of the transformed geometry
     minGeomX,maxGeomX,minGeomY,maxGeomY = workingGeometry.GetEnvelope()
     # Determine the dimensions and offsets of a bounding box that will contain the entire property
-    bufferSize = 10 * 30 # buffer size is the number of pixles multiplied by the raster resolution (30 meters)      
+    bufferSize = 5 * 30 # buffer size is the number of pixles multiplied by the raster resolution (30 meters)      
     
     # Get the affine transform from the raster and define the raster bounding box in pixles
     geotransform = dataset.GetGeoTransform()
@@ -281,11 +281,18 @@ def getNdvi (redArray, nirArray):
     # Jeff Guido, Jan 2016
 
     # Create ndviArray to hold the pixel values   
-    nvdiArray = np.ndarray(redArray.shape)
+    ndviArray = np.ndarray(redArray.shape)
     # Iterate through the red and nir arrays
-    for index in np.nditer(nvdiArray.shape):
-        if redArray[index] & nirArray[index] > 0:
-            nvdiArray[index] = (nirArray[index] - redArray[index])/(nirArray[index] + redArray[index])
+    for index in np.ndindex(ndviArray.shape):
+        # If both arrays have valid values (greater than zero), perform the calc        
+        if redArray[index] and nirArray[index] > 0:
+            ndviArray[index] = (nirArray[index] - redArray[index])/(nirArray[index] + redArray[index])
+        # If only one array has a valid value in the indexed cell, set a flag
+        elif redArray[index] or nirArray[index] > 0:
+            ndviArray[index] = -500 # flag set to -500 to indicate an error
+            
     # Integrate the values to return
+    ndviVal = np.trapz(np.trapz(ndviArray)) # consider bringing the resolution 30m into this measurement
+    # Consider substituting the use of trapz with cumsum and dividing the output by the number of cells
 
-    return ndviVal, nvdiArray
+    return ndviVal, ndviArray
