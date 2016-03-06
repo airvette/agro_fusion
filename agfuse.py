@@ -94,6 +94,62 @@ def createProperty (name, use, boundaryPoints):
 
     return None
     
+def createFileName(platform, sensor, msnNo, orbPath, orbRow, yr, dy, gndID, ver, fileType):
+# This function accepts scene identification data for a particular raster file.
+#  The function will return a string that is the identifying file name for a
+#  raster.  Currently this function is built for LANDSAT 8, but other naming
+#  formats can be used in the future.
+# Inputs: ---------------------------------------------------------------------
+# - platform = the mission name (eg. Landsat)
+# - sensor = the sensor configuration used (eg. OLI, TRS, Combined)
+# - msnNo = mission number (for Landsat 8, the input would be 8)
+# - orbPath = the orbital path that the desired scene was taken from (eg. 042)
+# - orbRow = the orbital row of the desired scene (eg. 036)
+# - yr = year scene was taken, must be 4 digits (eg. 2015)
+# - dy = Julian day scene was taken (eg. 194)
+# - gndID = Ground Station Identifier (eg. LGN)
+# - ver = scene version (eg. 00)
+# - fileType = type of file of the raster image.  This value also determines
+#   the extension. For example, a Band 5 file would yield outputs of "_B5" 
+#   indicating Landsat 8 Band 5 raster image and a file extension of ".TIF"
+# Output: ---------------------------------------------------------------------
+# - fileName = the name of the desired file, comprised of all relevant inputs
+#   in one string
+    
+    if platform == 'Landsat' & msnNo == 8: # If a L8 raster
+        # Follow L8 file-naming convention
+        P = 'L' # 'L' for Landsat
+        
+        # Determine the sensor abbreviation 
+        if sensor == 'OLI': # if only OLI sensor was used
+            s = 'O'
+        elif sensor == 'TIRS': # if only TIRS sensor was used
+            s = 'T'
+        else: # if both were used
+            s = 'C'
+        
+        # Determine file type and extension abbreviations
+        if fileType == 'Band3': # Green
+            ft = '_B3.TIF'
+        if fileType == 'Band4': # Red
+            ft = '_B4.TIF'
+        if fileType == 'Band5': # Near Infrared
+            ft = '_B5.TIF'
+        if fileType == 'MetaD': # metadata file
+            ft = 'MTL.txt'
+        if fileType == 'BandQ': # quality band file
+            ft = 'BQA.TIF'
+        if fileType == 'CkSum': # checksum file
+            ft = 'MD5.txt'
+        else:
+            ft = 'xxx.TIF'            
+            # Throw an error
+        
+        filename = '%s%s%s%s%s%s%s%s%s%s%s' % (P, s, )
+            
+        
+
+
 def isoRasterProp(raster, shapefile):
 #This function takes a Landsat raster image and uses a shapefile to return a 
 # numpy array that only includes the raster pixel values that are inside of the 
@@ -282,17 +338,20 @@ def getNdvi (redArray, nirArray):
 
     # Create ndviArray to hold the pixel values   
     ndviArray = np.ndarray(redArray.shape)
+    area = 0.0 # property area in pixles
     # Iterate through the red and nir arrays
     for index in np.ndindex(ndviArray.shape):
         # If both arrays have valid values (greater than zero), perform the calc        
         if redArray[index] and nirArray[index] > 0:
             ndviArray[index] = (nirArray[index] - redArray[index])/(nirArray[index] + redArray[index])
+            area += 1 # area accumulates the number of pixles in the area of interest
         # If only one array has a valid value in the indexed cell, set a flag
         elif redArray[index] or nirArray[index] > 0:
             ndviArray[index] = -500 # flag set to -500 to indicate an error
             
     # Integrate the values to return
-    ndviVal = np.trapz(np.trapz(ndviArray)) # consider bringing the resolution 30m into this measurement
-    # Consider substituting the use of trapz with cumsum and dividing the output by the number of cells
-
+    #ndviVal = np.trapz(np.trapz(ndviArray)) # consider bringing the resolution 30m into this measurement
+    # Consider substituting the use of trapz with cumsum and dividing the output by the number of cells   
+    ndviVal = (1/(area*30.0))*np.sum(ndviArray)    
+    
     return ndviVal, ndviArray
