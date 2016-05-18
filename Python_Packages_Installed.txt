@@ -1,10 +1,32 @@
 ### Installed Python Packages ###
 Most installed from: http://www.lfd.uci.edu/~gohlke/pythonlibs/
 
-8 Dec 2015
-- Python 2.7 - 64bit
-- numpy 1.9.3 - numpy-1.9.3+mkl-cp27-none-win_amd64.whl
-- pyproj 1.9.4 - pyproj-1.9.4-cp27-none-win_amd64.whl
+17 May 2016 ***FRESH PYTHON TOOL INSTALL***
+- Python 2.7.11 - 64 bit
+- Upgrade pip:
+  -- in command line navigate to 'Python27'
+  -- run 'python -m pip install -U pip setuptools'
+- numpy 1.11.0 - numpy-1.11.0+mkl-cp27-cp27m-win32.whl
+  -- for this and all following .whl files:
+  -- open command line and navigate to wheel location 
+  -- run command 'pip install some-wheel-file.whl'
+- pyproj 1.9.5 - pyproj-1.9.5-cp27-none-win32.whl
+- PyQt4 4.11.4 - PyQt4-4.11.4-cp27-none-win32.whl
+- Sphinx 1.4.1 - Sphinx-1.4.1-py2.py3-none-any.whl
+- Ropes 1.0 - Ropes-1.0-cp27-none-win32.whl
+- Pyflakes 1.2.3 - pyflakes-1.2.3-py2.py3-none-any.whl
+- Pylint 1.5.5 - pylint-1.5.5-py2.py3-none-any.whl
+- Pep8 1.7.0 - pep8-1.7.0-py2.py3-none-any-whl
+- Scipy 0.17.1 - scipy-0.17.1-cp27-cp27m-win32.whl
+- MatPlotLib 1.5.1 - matplotlib-1.5.1-cp27-none-win32.whl
+- Psutil 4.2.0 - psutil-4.2.0-cp27-cp27m-win32.whl
+- Spyder 2.3.9
+  -- Download from https://github.com/spyder-ide/spyder/releases
+  -- Unzip to a directory and add that directory path to Path in Environment Variables
+  -- Open command line and change directory to file path
+  -- Run command 'python setup.py install'
+- GDAL-1.11.4-cp27-none-win32.whl
+opencv_python-2.4.13-cp27-cp27m-win32.whl
 
 9 Dec 2015
 - PyQt4 4.11.4 - PyQt4-4.11.4-cp27-none-win_amd64.whl
@@ -20,3 +42,9 @@ Most installed from: http://www.lfd.uci.edu/~gohlke/pythonlibs/
   -- https://github.com/spyder-ide/spyder/releases
 - gdal 1.11.3 - GDAL-1.11.3-cp27-none-win_amd64.whl
 - opencv 2.4.12 - opencv_python-2.4.12-cp27-none-win_amd64.whl
+
+8 Dec 2015
+- Python 2.7 - 64bit
+- numpy 1.9.3 - numpy-1.9.3+mkl-cp27-none-win_amd64.whl
+- pyproj 1.9.4 - pyproj-1.9.4-cp27-none-win_amd64.whl
+md
